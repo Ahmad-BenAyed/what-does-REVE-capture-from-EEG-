@@ -1,0 +1,15 @@
+# Données EEG et embeddings
+data/
+raw_data/
+hf-cache/
+hf_cache/
+
+# Environnements Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets
+.env
+token
