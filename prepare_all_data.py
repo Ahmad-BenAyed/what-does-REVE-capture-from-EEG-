@@ -1,8 +1,17 @@
 
 from pathlib import Path
-import mne
+from importlib import import_module
 import pandas as pd
 import numpy as np
+
+try:
+    mne = import_module("mne")
+except ModuleNotFoundError as e:
+    if e.name != "mne":
+        raise
+    raise RuntimeError(
+        "MNE is required to read EDF files. Install it with: python -m pip install mne"
+    ) from e
 
 # Dossiers
 DATA_DIR = Path("raw_data/nm000290")

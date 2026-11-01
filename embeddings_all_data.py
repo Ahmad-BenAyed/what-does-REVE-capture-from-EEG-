@@ -1,7 +1,16 @@
 
 import numpy as np
 import torch
-from transformers import AutoModel
+import importlib
+
+try:
+    AutoModel = importlib.import_module("transformers").AutoModel
+except ModuleNotFoundError as exc:
+    if exc.name == "transformers":
+        raise ModuleNotFoundError(
+            "Install the required dependency with: python -m pip install transformers"
+        ) from exc
+    raise
 
 # Configuration
 BATCH_SIZE = 16
