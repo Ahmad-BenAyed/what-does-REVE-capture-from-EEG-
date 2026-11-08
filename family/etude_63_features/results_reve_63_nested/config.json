@@ -1,0 +1,43 @@
+{
+  "embeddings": "reve_embeddings.npz",
+  "features": "features_63.npz",
+  "metadata": "segments_metadata.csv",
+  "out": "results_reve_63_nested",
+  "targets": "summary",
+  "alphas": [
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "selection_score": "raw",
+  "variance_atol": 1e-08,
+  "variance_rtol": 1e-06,
+  "subjects": [
+    "sub-P01",
+    "sub-P02",
+    "sub-P03",
+    "sub-P04",
+    "sub-P05",
+    "sub-P06",
+    "sub-P07",
+    "sub-P08",
+    "sub-P09",
+    "sub-P10"
+  ],
+  "n_subjects": 10,
+  "n_trials": 2642,
+  "dropped_nonfinite_rows": 0,
+  "n_outputs": 308,
+  "outer_cv": "leave one subject out",
+  "inner_cv": "leave one remaining subject out",
+  "target_aggregation": "six statistics per channel feature, or original channels; globals unchanged",
+  "r2_policy": "raw retained, exact constants undefined; low variance flagged without removing dimensions",
+  "summary": "equal weight per subject, then equal weight per defined dimension; no pooled R2 used for model selection",
+  "scope": "regression only; no shuffled/Gaussian controls, layer analysis, causal erasure, closure or encoded status",
+  "row_alignment": "original order assumed; labels checked where present",
+  "completed": true,
+  "embeddings_sha256": "d7e913375644c536e594e62f02e74307aaa389415aa0867f45162fa6b0015653",
+  "features_sha256": "705f98d7bff45fe7b3651e0d3432d21187c6767645f0a9e5b5a75caef02ab505",
+  "metadata_sha256": "637e3b221171fd1d85e2c5abbc1f6c37d817978b77a803b54aae1c3a56365672"
+}

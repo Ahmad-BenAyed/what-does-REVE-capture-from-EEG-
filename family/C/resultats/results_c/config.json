@@ -1,0 +1,29 @@
+{
+  "segments": "segments_labeled.npz",
+  "embeddings": "reve_embeddings.npz",
+  "signal_key": null,
+  "embedding_key": null,
+  "fs": 200.0,
+  "acf_max_lag": null,
+  "batch_size": 8,
+  "seed": 42,
+  "alphas": [
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "out": "results_c_20261108_141507",
+  "acf_max_lag_effective": 400,
+  "n_total": 2642,
+  "n_valid": 2642,
+  "n_channels": 41,
+  "source": "https://arxiv.org/pdf/2605.11410, eq.27-33",
+  "conventions": "stable ordinal ties; raw finite differences; positive log terms only; DFA forward complete windows; centered zero-padded FFT ACF, biased normalization",
+  "acf_default": "min(T//2, int(2*fs)); implementation choice; numeric tau_max unspecified in paper",
+  "split": "random trial-level 70/15/15; subjects may overlap",
+  "scaling": "fit train only; Ridge refit train+validation",
+  "alignment": "original row order required; available labels checked",
+  "r2": "raw; constant targets undefined; no clipping",
+  "completed": true
+}

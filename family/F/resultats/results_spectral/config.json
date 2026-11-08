@@ -1,0 +1,56 @@
+{
+  "segments": "segments_labeled.npz",
+  "embeddings": "reve_embeddings.npz",
+  "signal_key": "X",
+  "embedding_key": "embeddings",
+  "fs": 200.0,
+  "lowpass": 45.0,
+  "eps": 1e-12,
+  "batch_size": 8,
+  "seed": 42,
+  "alphas": [
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "out": "results_spectral",
+  "n_total": 2642,
+  "n_valid": 2642,
+  "n_channels": 41,
+  "split": "random trial-level 70/15/15; subjects may overlap",
+  "alignment": "original row order required; label equality checked if available",
+  "preprocessing": "EEG unchanged; squared rfft, no detrend, no window, no normalization, natural logarithm; streaming mean pooling embeddings",
+  "bands": [
+    [
+      "delta",
+      0.5,
+      4.0
+    ],
+    [
+      "theta",
+      4.0,
+      8.0
+    ],
+    [
+      "alpha",
+      8.0,
+      13.0
+    ],
+    [
+      "beta",
+      13.0,
+      30.0
+    ],
+    [
+      "gamma",
+      30.0,
+      45.0
+    ]
+  ],
+  "log_floor": "max(band_energy, eps); zero canonical energy produces NaN features",
+  "memory": "numeric C-order arrays streamed from NPZ; only pooled embeddings and features retained",
+  "r2": "raw, averaged over nonconstant test channels; constants NaN, never clipped",
+  "standardization": "fit train only; final Ridge refit train+validation with frozen scalers",
+  "completed": true
+}

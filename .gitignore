@@ -13,3 +13,8 @@ venv/
 # Secrets
 .env
 token
+
+# Tableaux binaires conservés sur le serveur
+family/**/*.npz
+family/**/__pycache__/
+family/**/*.pyc
