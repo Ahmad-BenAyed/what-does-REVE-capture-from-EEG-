@@ -1,0 +1,12 @@
+{
+  "r_mode": "global",
+  "sources": {
+    "T": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/T/resultats/results_temporal/reve_temporal_ridge_results.csv",
+    "F": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/F/resultats/results_spectral/reve_spectral_ridge_results.csv",
+    "TF": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/TF/resultats/results_tf/reve_tf_ridge_results.csv",
+    "C": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/C/resultats/results_c/reve_c_ridge_results.csv",
+    "X": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/X/resultats/results_x/reve_x_ridge_results.csv",
+    "R": "/nasbrain/a26benay/GitHub/what-does-REVE-capture-from-EEG-/family/R/resultats/results_r/reve_r_ridge_results.csv"
+  },
+  "notice": "R² bruts de régression. Partition aléatoire par essai : des sujets peuvent être partagés. Ces scores ne mesurent ni une accuracy de classification ni un effet causal."
+}
