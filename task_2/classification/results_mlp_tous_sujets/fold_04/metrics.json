@@ -1,0 +1,13 @@
+{
+  "Fold": 4,
+  "Subject": "sub-P05",
+  "N_Train": 2452,
+  "N_Test": 190,
+  "Selected_Epoch": 1,
+  "Accuracy": 0.3526315789473684,
+  "Balanced_Accuracy": 0.3499503968253968,
+  "Macro_F1": 0.26637256614835086,
+  "Log_Loss": 1.136469841003418,
+  "Majority_Accuracy": 0.33157894736842103,
+  "Majority_Macro_F1": 0.16600790513833993
+}

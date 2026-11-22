@@ -1,0 +1,98 @@
+{
+  "embeddings": "C:\\Users\\Ahmad\\Desktop\\github\\data\\reve_embeddings.npz",
+  "metadata": "C:\\Users\\Ahmad\\Desktop\\github\\data\\segments_metadata.csv",
+  "segments": "C:\\Users\\Ahmad\\Desktop\\github\\data\\segments_labeled.npz",
+  "embedding_key": "embeddings",
+  "label_key": "y",
+  "subject_column": "subject",
+  "exclude_subjects": [],
+  "test_subjects": null,
+  "out": "C:\\Users\\Ahmad\\Desktop\\github\\reve\\classification\\results_mlp_tous_sujets",
+  "epochs": 20,
+  "inner_folds": 3,
+  "patience": 5,
+  "batch_size": 16,
+  "width": 64,
+  "dropout": 0.25,
+  "lr": 0.001,
+  "weight_decay": 0.001,
+  "seed": 42,
+  "threads": 4,
+  "device": "auto",
+  "resume": false,
+  "completed": true,
+  "model_type": "mlp",
+  "protocol": "outer LOSO; inner GroupKFold by subject; median best validation-loss epoch; fresh outer refit",
+  "analysis": "specified cohort",
+  "normalization": "one mean/std per pooled dimension, fitted on training rows only",
+  "torch_version": "2.14.1+cpu",
+  "device_used": "cpu",
+  "alignment": "original row order required; labels EEG/embeddings and metadata length checked",
+  "input_shape": [
+    2642,
+    41,
+    8,
+    512
+  ],
+  "training_input_shape": [
+    2642,
+    1,
+    1,
+    512
+  ],
+  "model_config": {
+    "input_shape": [
+      41,
+      8,
+      512
+    ],
+    "n_classes": 3,
+    "width": 64,
+    "dropout": 0.25,
+    "model_type": "mlp"
+  },
+  "classes": [
+    0,
+    1,
+    2
+  ],
+  "class_names": [
+    {
+      "label": 0,
+      "description": "mi"
+    },
+    {
+      "label": 1,
+      "description": "sub"
+    },
+    {
+      "label": 2,
+      "description": "word"
+    }
+  ],
+  "included_subjects": [
+    "sub-P01",
+    "sub-P02",
+    "sub-P03",
+    "sub-P04",
+    "sub-P05",
+    "sub-P06",
+    "sub-P07",
+    "sub-P08",
+    "sub-P09",
+    "sub-P10"
+  ],
+  "source_embeddings": {
+    "path": "C:\\Users\\Ahmad\\Desktop\\github\\data\\reve_embeddings.npz",
+    "file_size": 1650643022,
+    "member": "embeddings.npy",
+    "member_size": 1774747776,
+    "member_crc": 2002885684
+  },
+  "metadata_sha256": "637e3b221171fd1d85e2c5abbc1f6c37d817978b77a803b54aae1c3a56365672",
+  "labels_sha256": "fe5e3f40a023650a45eb7073786475d4f830336d227d8fc96e418ef6e4ae5095",
+  "n_rows_used": 2642,
+  "n_rows_excluded": 0,
+  "partial_run": false,
+  "n_folds_completed": 10
+}
