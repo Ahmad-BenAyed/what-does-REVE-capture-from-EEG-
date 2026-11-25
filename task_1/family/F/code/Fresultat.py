@@ -8,6 +8,15 @@ import csv
 import json
 import zipfile
 from pathlib import Path
+from runpy import run_path
+
+if __package__:
+    from task_1.paths import Paths, prepare_output
+else:
+    # Direct invocation places only this family's code directory on sys.path.
+    infrastructure = run_path(str(Path(__file__).resolve().parents[3] / "paths.py"))
+    Paths = infrastructure["Paths"]
+    prepare_output = infrastructure["prepare_output"]
 
 import numpy as np
 import pandas as pd
@@ -147,8 +156,9 @@ def load_labels(data):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--segments', default='segments_labeled.npz')
-    p.add_argument('--embeddings', default='reve_embeddings.npz')
+    p.add_argument("--config", type=Path)
+    p.add_argument('--segments', default=None)
+    p.add_argument('--embeddings', default=None)
     p.add_argument('--signal-key', default=None)
     p.add_argument('--embedding-key', default=None)
     p.add_argument('--fs', type=float, default=200)
@@ -157,12 +167,16 @@ def main():
     p.add_argument('--batch-size', type=int, default=8)
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--alphas', nargs='+', type=float, default=[.1, 1., 10., 100.])
-    p.add_argument('--out', default='results_spectral')
+    p.add_argument('--out', default=None)
     a = p.parse_args()
+    paths = Paths(vars(a).pop('config'))
+    a.segments = a.segments or str(paths.input("segments"))
+    a.embeddings = a.embeddings or str(paths.input("embeddings"))
+    a.out = a.out or str(paths.family_result("F"))
     if a.batch_size < 1 or not np.isfinite(a.eps) or a.eps <= 0 or not np.isfinite(a.lowpass) or a.lowpass <= 30 or not np.isfinite(a.fs) or a.fs <= 0 or any(not np.isfinite(v) or v <= 0 for v in a.alphas):
         p.error('fs, eps et alphas finis > 0 ; lowpass > 30 ; batch-size >= 1 requis')
     out = Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
+    prepare_output(out)
     if any(out.iterdir()):
         raise FileExistsError(f'{out} contient déjà des fichiers. Choisissez un autre --out.')
     print('Lecture des en-têtes NPZ (sans charger les grands tableaux)...', flush=True)

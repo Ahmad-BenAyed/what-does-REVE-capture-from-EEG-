@@ -1,6 +1,6 @@
 # MLP compact sur tous les sujets
 
-Ce patch ajoute un MLP comme nouvelle expérience de classification sur les embeddings
+Cette expérience utilise un MLP compact sur les embeddings
 REVE. Il inclut **tous les sujets par défaut**, y compris sub-P02, et conserve les
 résultats du CNN. Le MLP ne garantit pas une meilleure généralisation ; les faibles
 scores du CNN ne démontrent pas à eux seuls que sa taille était la cause.
@@ -24,28 +24,20 @@ Cette comparaison change à la fois le classifieur et l'agrégation : le CNN con
 les électrodes et traite les fenêtres, tandis que ce MLP utilise leur moyenne.
 Elle compare deux pipelines et n'isole pas l'effet de la seule architecture.
 
-## Installation dans le dépôt déjà équipé du CNN
+## Installation
 
-Télécharger `mlp-reve-loso.patch`, puis depuis le terminal de VS Code à la racine :
-
-```powershell
-git apply --check "C:\Users\Ahmad\Downloads\mlp-reve-loso.patch"
-git apply "C:\Users\Ahmad\Downloads\mlp-reve-loso.patch"
-python -m unittest discover -s tests -p test_mlp_reve.py -v
-```
-
-Les dépendances sont celles du CNN. Si nécessaire :
+Depuis la racine du dépôt, avec l’environnement Python de Task 2.
 
 ```powershell
-python -m pip install -r classification\requirements.txt
+python -m pip install -r task_2/requirements.txt
 ```
 
 ## Entraîner sur les dix sujets
 
-Avec les trois fichiers d'entrée dans `..\data` :
+Avec les trois fichiers d'entrée dans `data` :
 
 ```powershell
-python -u -m classification.train_mlp_loso
+python -u -m task_2.classification.train_mlp_loso --out task_2/classification/mlp-nouveau
 ```
 
 **Aucune option d'exclusion n'est nécessaire.** Les valeurs par défaut sont :
@@ -74,7 +66,7 @@ et ses labels ne sont pas modifiés.
 Le dossier par défaut est :
 
 ```text
-classification/results_mlp_tous_sujets/
+task_2/classification/results_mlp_tous_sujets/
 ```
 
 Il contient les mêmes fichiers de résultats que le CNN :
@@ -88,19 +80,19 @@ pooling. Les anciens checkpoints CNN restent lisibles.
 Afficher la moyenne et l'écart-type entre sujets :
 
 ```powershell
-python -c "import pandas as pd; print(pd.read_csv(r'classification\results_mlp_tous_sujets\metrics_summary.csv',index_col=0).to_string())"
+python -c "import pandas as pd; print(pd.read_csv(r'task_2\classification\results_mlp_tous_sujets\metrics_summary.csv',index_col=0).to_string())"
 ```
 
 Afficher les résultats par sujet :
 
 ```powershell
-python -c "import pandas as pd; d=pd.read_csv(r'classification\results_mlp_tous_sujets\fold_metrics.csv'); print(d[['Subject','Accuracy','Balanced_Accuracy','Macro_F1','Majority_Accuracy','Selected_Epoch']].to_string(index=False))"
+python -c "import pandas as pd; d=pd.read_csv(r'task_2\classification\results_mlp_tous_sujets\fold_metrics.csv'); print(d[['Subject','Accuracy','Balanced_Accuracy','Macro_F1','Majority_Accuracy','Selected_Epoch']].to_string(index=False))"
 ```
 
-Comparer les moyennes au CNN déjà entraîné sur tous les sujets :
+Si le dossier CNN est disponible localement, comparer les moyennes au CNN déjà entraîné sur tous les sujets :
 
 ```powershell
-python -c "import pandas as pd; a=pd.read_csv(r'classification\results_cnn_tous_sujets\metrics_summary.csv',index_col=0); b=pd.read_csv(r'classification\results_mlp_tous_sujets\metrics_summary.csv',index_col=0); print(pd.DataFrame({'CNN':a.loc['mean'],'MLP':b.loc['mean']}).to_string())"
+python -c "import pandas as pd; a=pd.read_csv(r'task_2\classification\results_cnn_tous_sujets\metrics_summary.csv',index_col=0); b=pd.read_csv(r'task_2\classification\results_mlp_tous_sujets\metrics_summary.csv',index_col=0); print(pd.DataFrame({'CNN':a.loc['mean'],'MLP':b.loc['mean']}).to_string())"
 ```
 
 Une différence de moyenne seule n'établit pas sa significativité. Les sorties par
@@ -111,7 +103,7 @@ sujet permettent une comparaison appariée si les cohortes et les lignes sont id
 Après interruption, avec les mêmes options d'entraînement :
 
 ```powershell
-python -u -m classification.train_mlp_loso --resume
+python -u -m task_2.classification.train_mlp_loso --resume --out task_2/classification/mlp-nouveau
 ```
 
 Les plis terminés sont conservés ; un pli incomplet repart du début. Une reprise
@@ -120,7 +112,7 @@ CNN/MLP croisée est refusée. Un lancement sans `--resume` refuse un dossier no
 Pour une vérification courte sur un seul sujet, dans un dossier distinct :
 
 ```powershell
-python -u -m classification.train_mlp_loso --epochs 2 --inner-folds 2 --test-subjects sub-P01 --out classification\results_mlp_verification
+python -u -m task_2.classification.train_mlp_loso --epochs 2 --inner-folds 2 --test-subjects sub-P01 --out task_2\classification\results_mlp_verification
 ```
 
 Ce test partiel n'est pas une évaluation LOSO complète.
@@ -131,13 +123,13 @@ La commande suivante recharge le MLP du premier pli et reproduit sa référence,
 sans apprentissage :
 
 ```powershell
-python -m classification.evaluate_frozen_mlp --checkpoint classification\results_mlp_tous_sujets\fold_00\checkpoint.pt --embeddings ..\data\reve_embeddings.npz --metadata ..\data\segments_metadata.csv --out classification\results_mlp_relecture_fold00
+python -m task_2.classification.evaluate_frozen_mlp --checkpoint task_2\classification\results_mlp_tous_sujets\fold_00\checkpoint.pt --embeddings data\reve_embeddings.npz --metadata data\segments_metadata.csv --out task_2\classification\results_mlp_relecture_fold00
 ```
 
 Plus tard, utiliser le même checkpoint avec les embeddings après effacement :
 
 ```powershell
-python -m classification.evaluate_frozen_mlp --checkpoint classification\results_mlp_tous_sujets\fold_00\checkpoint.pt --embeddings ..\data\reve_embeddings_effaces.npz --metadata ..\data\segments_metadata.csv --out classification\results_mlp_effacement_fold00
+python -m task_2.classification.evaluate_frozen_mlp --checkpoint task_2\classification\results_mlp_tous_sujets\fold_00\checkpoint.pt --embeddings data\reve_embeddings_effaces.npz --metadata data\segments_metadata.csv --out task_2\classification\results_mlp_effacement_fold00
 ```
 
 Pour le MLP, le nouveau NPZ peut contenir soit les tenseurs complets, soit les
@@ -146,4 +138,4 @@ les lignes dans l'ordre original et les labels `y`. Le même CSV metadata est re
 La commande utilise seulement les indices de test sauvegardés. Les poids et les
 statistiques de normalisation restent fixes ; l'effacement intervient avant cette
 normalisation. La transformation d'effacement devra être estimée uniquement sur les
-indices d'entraînement du checkpoint. Ce patch n'effectue pas encore cet effacement.
+indices d'entraînement du checkpoint. Le module `task_2.classification.leace_mlp` met en œuvre l’effacement décrit dans le [guide de Task 2](../README.md).

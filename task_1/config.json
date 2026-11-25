@@ -1,0 +1,15 @@
+{
+  "data_dir": "../../data",
+  "segments_file": "segments_labeled.npz",
+  "embeddings_file": "reve_embeddings.npz",
+  "family_dir": "family",
+  "families": {
+    "T": "results_temporal",
+    "F": "results_spectral",
+    "TF": "results_tf",
+    "C": "results_c",
+    "R": "results_r",
+    "X": "results_x"
+  },
+  "visualisations_dir": "visualisations"
+}

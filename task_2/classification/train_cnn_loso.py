@@ -13,7 +13,7 @@ from sklearn.model_selection import GroupKFold, LeaveOneGroupOut
 from .cnn_reve import (cache_embeddings, choose_device, eligible_rows, fit_epoch, load_labels,
                        load_metadata, make_loader, make_model, metrics, predict, save_predictions, write_json, mean_pool_embeddings)
 
-ROOT = Path(__file__).resolve().parents[1]
+from ..paths import Paths, output_problem
 
 
 def select_epoch(array, labels, train, subjects, model_config, args, device, seed, folder):
@@ -52,16 +52,19 @@ def main(model_type='cnn'):
     if model_type not in ('cnn', 'mlp'):
         raise ValueError('Type de modèle invalide')
     p = argparse.ArgumentParser(description=f'Entraîner un {model_type.upper()} sur les embeddings REVE en LOSO')
-    data = ROOT.parent/'data'
-    p.add_argument('--embeddings', type=Path, default=data/'reve_embeddings.npz')
-    p.add_argument('--metadata', type=Path, default=data/'segments_metadata.csv')
-    p.add_argument('--segments', type=Path, default=data/'segments_labeled.npz', help='Seuls les labels y sont lus')
+    paths = Paths()
+    p.add_argument('--embeddings', type=Path, default=paths.input('embeddings'))
+    p.add_argument('--metadata', type=Path, default=paths.input('metadata'))
+    p.add_argument('--segments', type=Path, default=paths.input('segments'), help='Seuls les labels y sont lus')
     p.add_argument('--embedding-key', default='embeddings')
     p.add_argument('--label-key', default='y')
     p.add_argument('--subject-column', default='subject')
-    p.add_argument('--exclude-subjects', nargs='*', default=[] if model_type == 'mlp' else ['sub-P02'])
+    cohort = p.add_mutually_exclusive_group()
+    if model_type == 'cnn':
+        cohort.add_argument('--all-subjects', action='store_true', help='Include all eligible subjects, including sub-P02')
+    cohort.add_argument('--exclude-subjects', nargs='*', default=[] if model_type == 'mlp' else ['sub-P02'])
     p.add_argument('--test-subjects', nargs='+', help='Option de vérification partielle, sinon tous les sujets retenus')
-    p.add_argument('--out', type=Path, default=ROOT/'classification'/('results_mlp_tous_sujets' if model_type == 'mlp' else 'results_cnn_sans_P02'))
+    p.add_argument('--out', type=Path, default=None)
     p.add_argument('--epochs', type=int, default=20)
     p.add_argument('--inner-folds', type=int, default=3)
     p.add_argument('--patience', type=int, default=5)
@@ -75,11 +78,19 @@ def main(model_type='cnn'):
     p.add_argument('--device', choices=['auto', 'cpu', 'cuda'], default='auto')
     p.add_argument('--resume', action='store_true', help='Reprendre les plis terminés du même --out')
     args = p.parse_args()
+    all_subjects = vars(args).pop('all_subjects', False)
+    if all_subjects:
+        args.exclude_subjects = []
+    if args.out is None:
+        args.out = paths.location('cnn_all_results_dir' if all_subjects else f'{model_type}_results_dir')
     if min(args.epochs, args.patience, args.batch_size, args.width, args.threads) < 1 or args.inner_folds < 2:
         p.error('Entiers positifs requis ; --inner-folds >= 2')
     if not 0 <= args.dropout < 1 or not np.isfinite([args.lr, args.weight_decay]).all() or args.lr <= 0 or args.weight_decay < 0:
         p.error('Paramètres numériques invalides')
     previous = None
+    problem = output_problem(args.out, args.resume)
+    if problem:
+        p.error(problem)
     if args.out.exists() and any(args.out.iterdir()):
         if not args.resume or not (args.out/'config.json').is_file():
             p.error(f'{args.out} est non vide. Utiliser --resume pour cette expérience ou un autre --out.')

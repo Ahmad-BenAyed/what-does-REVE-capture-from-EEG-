@@ -3,6 +3,15 @@ import csv
 import json
 import zipfile
 from pathlib import Path
+from runpy import run_path
+
+if __package__:
+    from task_1.paths import Paths, prepare_output
+else:
+    # Direct invocation places only this family's code directory on sys.path.
+    infrastructure = run_path(str(Path(__file__).resolve().parents[3] / "paths.py"))
+    Paths = infrastructure["Paths"]
+    prepare_output = infrastructure["prepare_output"]
 
 import numpy as np
 import pandas as pd
@@ -291,8 +300,9 @@ def predict(model, x):
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--segments", default="segments_labeled.npz")
-    parser.add_argument("--embeddings", default="reve_embeddings.npz")
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--segments", default=None)
+    parser.add_argument("--embeddings", default=None)
     parser.add_argument("--signal-key")
     parser.add_argument("--embedding-key")
     parser.add_argument("--fs", type=float, default=200)
@@ -303,9 +313,13 @@ def main():
         "--alphas", type=float, nargs="+",
         default=[0.1, 1.0, 10.0, 100.0],
     )
-    parser.add_argument("--out", default="results_c")
+    parser.add_argument("--out", default=None)
 
     args = parser.parse_args()
+    paths = Paths(vars(args).pop('config'))
+    args.segments = args.segments or str(paths.input("segments"))
+    args.embeddings = args.embeddings or str(paths.input("embeddings"))
+    args.out = args.out or str(paths.family_result("C"))
 
     if (
         args.batch_size < 1
@@ -317,7 +331,7 @@ def main():
         parser.error("Paramètres numériques invalides.")
 
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
+    prepare_output(out)
 
     if any(out.iterdir()):
         raise FileExistsError(

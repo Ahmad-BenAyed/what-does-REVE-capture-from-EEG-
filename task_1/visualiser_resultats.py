@@ -5,6 +5,11 @@ import html
 import json
 from pathlib import Path
 
+if __package__:
+    from .paths import Paths, prepare_output, ridge_csv
+else:
+    from paths import Paths, prepare_output, ridge_csv
+
 import matplotlib
 matplotlib.use("Agg")  # Compatible avec Slurm, sans écran graphique.
 import matplotlib.pyplot as plt
@@ -23,38 +28,26 @@ COLORS = dict(zip(
 
 SPECS = {
     "T": (
-        "results_temporal",
-        "reve_temporal_ridge_results.csv",
         "reve_temporal_channel_results.csv",
         10,
     ),
     "F": (
-        "results_spectral",
-        "reve_spectral_ridge_results.csv",
         "reve_spectral_channel_results.csv",
         16,
     ),
     "TF": (
-        "results_tf",
-        "reve_tf_ridge_results.csv",
         "reve_tf_channel_results.csv",
         11,
     ),
     "C": (
-        "results_c",
-        "reve_c_ridge_results.csv",
         "reve_c_channel_results.csv",
         7,
     ),
     "X": (
-        "results_x",
-        "reve_x_ridge_results.csv",
         "reve_x_channel_results.csv",
         5,
     ),
     "R": (
-        "results_r",
-        "reve_r_ridge_results.csv",
         "reve_r_dimensions_results.csv",
         14,
     ),
@@ -117,8 +110,9 @@ def read_result(path, family, expected):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", default="family")
-    parser.add_argument("--out", default="visualisations")
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--root", type=Path)
+    parser.add_argument("--out", type=Path)
     parser.add_argument(
         "--r-mode",
         choices=["global", "summary"],
@@ -126,8 +120,9 @@ def main():
     )
     args = parser.parse_args()
 
-    root = Path(args.root)
-    out = Path(args.out)
+    infrastructure = Paths(args.config)
+    root = args.root or infrastructure.location("family_dir")
+    out = args.out or infrastructure.location("visualisations_dir")
 
     tables = []
     paths = {}
@@ -135,12 +130,13 @@ def main():
     print("Chargement des résultats...", flush=True)
 
     for family in FAMILIES:
-        folder, filename, _, expected = SPECS[family]
+        _, expected = SPECS[family]
+        folder = infrastructure.families[family]
 
         if family == "R" and args.r_mode == "summary":
             folder = "results_r_summary"
 
-        path = root / family / "resultats" / folder / filename
+        path = root / family / "resultats" / folder / ridge_csv(family)
         data = read_result(path, family, expected)
         data["Source"] = str(path.resolve())
 
@@ -157,13 +153,7 @@ def main():
     if len(all_results) != 63:
         raise ValueError("Le tableau doit contenir 63 features.")
 
-    out.mkdir(parents=True, exist_ok=True)
-
-    if any(out.iterdir()):
-        raise FileExistsError(
-            f"{out} contient déjà des fichiers. "
-            "Choisir un autre dossier avec --out."
-        )
+    prepare_output(out)
 
     all_results.to_csv(
         out / "resultats_63_features.csv",
@@ -419,7 +409,7 @@ def main():
     base = root / "R" / "resultats"
 
     global_path = (
-        base / "results_r" / "reve_r_ridge_results.csv"
+        base / infrastructure.families["R"] / "reve_r_ridge_results.csv"
     )
     summary_path = (
         base / "results_r_summary" / "reve_r_ridge_results.csv"
@@ -492,7 +482,7 @@ def main():
     # --------------------------------------------------------
     for family in FAMILIES[:-1]:
         detail_path = paths[family].with_name(
-            SPECS[family][2]
+            SPECS[family][0]
         )
 
         if not detail_path.is_file():

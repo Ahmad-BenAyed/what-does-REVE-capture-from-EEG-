@@ -1,7 +1,17 @@
-"""Figures et tableau de bord hors ligne des effacements LEACE du MLP."""
+"""Figures et tableau de bord hors ligne des effacements LEACE."""
 import argparse
+import json
 from html import escape
 from pathlib import Path
+
+if __package__:
+    from ..paths import Paths, prepare_output
+else:
+    from runpy import run_path
+
+    infrastructure = run_path(str(Path(__file__).resolve().parents[1] / 'paths.py'))
+    Paths = infrastructure['Paths']
+    prepare_output = infrastructure['prepare_output']
 
 import matplotlib
 matplotlib.use("Agg")
@@ -79,13 +89,22 @@ def table(frame):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    root = Path(__file__).resolve().parent
-    parser.add_argument("--results", type=Path, default=root / "results_leace_mlp")
+    paths = Paths()
+    parser.add_argument("--model", choices=("mlp", "cnn"))
+    parser.add_argument("--results", type=Path)
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
-    data, n = load_results(args.results)
-    out = args.out or args.results / "visualisations"
-    out.mkdir(parents=True, exist_ok=True)
+    results = args.results or paths.location("leace_cnn_results_dir" if args.model == "cnn" else "leace_results_dir")
+    config_file = results / "config.json"
+    config = json.loads(config_file.read_text(encoding="utf-8")) if config_file.is_file() else {}
+    model = config.get("model_type", "mlp")
+    if args.model and args.model != model:
+        parser.error("Specify matching LEACE results for the requested model.")
+    if model == "cnn" and not config.get("completed"):
+        parser.error("CNN LEACE results are incomplete.")
+    out = args.out or (args.results / "visualisations" if args.results else paths.location("cnn_visualisations_dir" if model == "cnn" else "visualisations_dir"))
+    data, n = load_results(results)
+    prepare_output(out)
     family_ids = data.index.get_level_values("Feature").str.extract(r"^([A-Z]+)\d", expand=False)
     if set(family_ids) != set(FAMILIES):
         raise ValueError("Familles EEG inattendues dans by_subject.csv")
@@ -93,13 +112,33 @@ def main():
 <style>body{font:16px system-ui;color:#17313a;max-width:1350px;margin:auto;padding:24px}
 img{width:100%}details{margin:10px 0}summary{cursor:pointer}section{overflow-x:auto}
 td,th{padding:5px 9px;text-align:right;border-bottom:1px solid #ddd}table{border-collapse:collapse}
-nav a{margin-right:18px}</style><h1>Effacement LEACE sur le MLP</h1>""",
+nav a{margin-right:18px}</style>""",
+            f"<h1>Effacement LEACE sur le {escape(model.upper())}</h1>",
             f"<p>63 caractéristiques · 10 sujets · {n} contrôles aléatoires par effacement. "
             "Chaque sujet a le même poids. Une perte positive indique une dégradation. "
             "La carte montre la perte ciblée moins la perte aléatoire. Son échelle de couleur "
             "est propre à chaque famille.</p><nav>" +
             "".join(f'<a href="#{f}">{f}</a>' for f in FAMILIES) + "</nav>"]
+    if model == "cnn":
+        page.append("<p>Projection affine commune sur les tokens. Les sondes mesurent la "
+                    "d?codabilit? des repr?sentations moyenn?es.</p>")
+    family_subject = data.assign(Family=family_ids).groupby(["Family", "Subject"])[
+        ["Loss_Balanced_Accuracy", "Random_loss_Balanced_Accuracy", "Gap_Balanced_Accuracy"]].mean()
+    family_subject.to_csv(out / "familles_par_sujet.csv")
+    family_subject.groupby("Family").agg(["mean", "std"]).to_csv(out / "familles_resume.csv")
     with PdfPages(out / "figures_leace.pdf") as pdf:
+        fig, ax = plt.subplots(figsize=(8, 4), layout="constrained")
+        for i, family in enumerate(FAMILIES):
+            values = family_subject.loc[family, "Gap_Balanced_Accuracy"].to_numpy()
+            ax.scatter(np.full(len(values), i), values, color="#24665e", alpha=.6)
+            ax.errorbar(i, values.mean(), yerr=values.std(ddof=1), fmt="s", color="#202632")
+        ax.set(xticks=range(len(FAMILIES)), xticklabels=FAMILIES, ylabel="Perte cibl?e moins contr?le (points)",
+               title="Distribution des moyennes par sujet et famille")
+        ax.axhline(0, color="gray", lw=1)
+        fig.savefig(out / "variabilite_familles.png", dpi=145)
+        pdf.savefig(fig)
+        plt.close(fig)
+        page.append('<img src="variabilite_familles.png" alt="Pertes moyennes par famille et sujet">')
         for family in FAMILIES:
             subset = data[family_ids == family]
             plot_family(pdf, out, family, subset)
@@ -121,6 +160,9 @@ nav a{margin-right:18px}</style><h1>Effacement LEACE sur le MLP</h1>""",
                                   "Rang", "Sonde avant", "Sonde après"]
                 page.append(f"<details><summary>{escape(feature)}</summary>{table(detail.reset_index())}</details>")
             page.append("</section>")
+    scores = data[["Loss_Balanced_Accuracy", "Random_loss_Balanced_Accuracy", "Gap_Balanced_Accuracy"]]
+    scores.groupby("Feature").agg(["mean", "std"]).sort_values(
+        ("Gap_Balanced_Accuracy", "mean"), ascending=False).to_csv(out / "classement_caracteristiques.csv")
     data.to_csv(out / "comparaisons_par_sujet.csv")
     (out / "index.html").write_text("\n".join(page) + "</html>", encoding="utf-8")
     print((out / "index.html").resolve())

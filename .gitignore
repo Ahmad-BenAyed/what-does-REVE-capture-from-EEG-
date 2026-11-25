@@ -1,20 +1,46 @@
-# Données EEG et embeddings
-data/
-raw_data/
-hf-cache/
-hf_cache/
+# Local data
+/data/
+/raw_data/
+/hf-cache/
+/hf_cache/
 
-# Environnements Python
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
 
 # Secrets
 .env
 token
 
-# Tableaux binaires conservés sur le serveur
-family/**/*.npz
-family/**/__pycache__/
-family/**/*.pyc
+# Local execution files
+*.log
+*.partial
+*.tmp
+task_2/classification/**/cache/embeddings_*.npy
+task_2/classification/**/cnn_eval_*/
+
+# New large experimental binaries (historical tracked files remain tracked)
+task_1/**/test_predictions.npz
+task_1/**/*_features.npz
+task_2/classification/**/fold_*/checkpoint.pt
+task_2/classification/**/sub-*/*.npz
+task_2/**/*_tokens.npy
+
+# Temporary experiments
+/task_2/classification/results_cnn_test_gpu/
+/task_2/classification/results_leace_cnn/
+
+# Execution logs
+/task_1/logs/
+/task_2/logs/
+
+# Local data and caches
+/data/
+*.memmap
+__pycache__/
+.pytest_cache/
+.venv/

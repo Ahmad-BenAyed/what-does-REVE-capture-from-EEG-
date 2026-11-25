@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import tempfile
 
+from ..paths import Paths, output_problem, prepare_output
+
 import numpy as np
 import pandas as pd
 import torch
@@ -14,10 +16,12 @@ from .cnn_reve import (cache_embeddings, choose_device, load_classifier, load_la
 
 
 def main():
+    paths = Paths()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--checkpoint', type=Path, required=True)
-    p.add_argument('--embeddings', type=Path, required=True)
-    p.add_argument('--metadata', type=Path, required=True)
+    p.add_argument('--embeddings', type=Path, default=paths.input('embeddings'))
+    p.add_argument('--metadata', type=Path, default=paths.input('metadata'))
+    p.add_argument('--reference', type=Path, help='Compare to the original fold predictions.csv')
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--device', choices=['auto','cpu','cuda'], default='auto')
     p.add_argument('--batch-size', type=int, default=16)
@@ -25,7 +29,7 @@ def main():
     a = p.parse_args()
     if min(a.batch_size, a.threads) < 1:
         p.error('batch-size et threads doivent être positifs')
-    if a.out.exists() and any(a.out.iterdir()):
+    if output_problem(a.out):
         p.error('Le dossier de sortie doit être vide')
     torch.set_num_threads(a.threads)
     device = choose_device(a.device)
@@ -47,7 +51,18 @@ def main():
     lookup = {v:i for i,v in enumerate(classes)}
     labels = np.full(len(labels_raw), -1, dtype=np.int64)
     labels[rows] = [lookup[v] for v in labels_raw[rows].tolist()]
-    a.out.mkdir(parents=True, exist_ok=True)
+    reference = None
+    if a.reference:
+        saved = pd.read_csv(a.reference, dtype={"Subject": str}).set_index("row_index")
+        cols = [f"Probability_Class_{i}" for i in range(len(classes))]
+        if (not saved.index.is_unique or set(saved.index) != set(rows)
+                or not (saved.loc[rows, "Subject"] == checkpoint["test_subject"]).all()
+                or not np.array_equal(saved.loc[rows, "True_Label"].astype(str), labels_raw[rows].astype(str))):
+            p.error("Reference predictions do not match this fold")
+        reference = saved.loc[rows, cols].to_numpy(dtype=np.float32)
+        if not np.isfinite(reference).all() or (reference < 0).any() or not np.allclose(reference.sum(axis=1), 1):
+            p.error("Invalid reference probabilities")
+    prepare_output(a.out)
     with tempfile.TemporaryDirectory(prefix='cnn_eval_', dir=a.out) as cache:
         array, _ = cache_embeddings(a.embeddings, checkpoint['embedding_key'], cache)
         try:
@@ -68,6 +83,12 @@ def main():
             del array
     score = metrics(labels[rows], probabilities)
     save_predictions(a.out, labels, probabilities, rows, subjects, classes)
+    if reference is not None:
+        baseline = metrics(labels[rows], reference)
+        score.update({f"Reference_{key}": value for key, value in baseline.items()})
+        score.update({f"Delta_{key}": score[key] - value for key, value in baseline.items()})
+        score["Max_absolute_probability_change"] = float(np.max(np.abs(probabilities - reference)))
+        score["Reference_probabilities_match"] = bool(np.allclose(probabilities, reference, atol=1e-5))
     score.update(Subject=checkpoint['test_subject'], checkpoint=str(a.checkpoint.resolve()),
                  embeddings=str(a.embeddings.resolve()), frozen_weights=True, frozen_normalization=True)
     (a.out/'metrics.json').write_text(json.dumps(score, indent=2), encoding='utf-8')

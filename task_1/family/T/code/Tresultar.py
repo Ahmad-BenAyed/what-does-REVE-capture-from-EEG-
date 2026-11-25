@@ -7,6 +7,15 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from runpy import run_path
+
+if __package__:
+    from task_1.paths import Paths, prepare_output
+else:
+    # Direct invocation places only this family's code directory on sys.path.
+    infrastructure = run_path(str(Path(__file__).resolve().parents[3] / "paths.py"))
+    Paths = infrastructure["Paths"]
+    prepare_output = infrastructure["prepare_output"]
 
 import numpy as np
 import pandas as pd
@@ -90,19 +99,24 @@ def load_labels(data):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--segments', default='segments_labeled.npz')
-    p.add_argument('--embeddings', default='reve_embeddings.npz')
+    p.add_argument("--config", type=Path)
+    p.add_argument('--segments', default=None)
+    p.add_argument('--embeddings', default=None)
     p.add_argument('--signal-key', default=None)
     p.add_argument('--embedding-key', default=None)
     p.add_argument('--fs', type=float, default=200)
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--alphas', nargs='+', type=float, default=[.1, 1., 10., 100.])
-    p.add_argument('--out', default='results_temporal')
+    p.add_argument('--out', default=None)
     a = p.parse_args()
+    paths = Paths(vars(a).pop('config'))
+    a.segments = a.segments or str(paths.input("segments"))
+    a.embeddings = a.embeddings or str(paths.input("embeddings"))
+    a.out = a.out or str(paths.family_result("T"))
     if not np.isfinite(a.fs) or a.fs <= 0 or any(not np.isfinite(v) or v <= 0 for v in a.alphas):
         p.error('fs et alphas doivent être finis et strictement positifs')
     out = Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
+    prepare_output(out)
     if any(out.iterdir()):
         raise FileExistsError(f'{out} contient déjà des fichiers. Choisissez un autre --out.')
     # N'utiliser que vos propres NPZ de confiance (allow_pickle pour anciens exports).

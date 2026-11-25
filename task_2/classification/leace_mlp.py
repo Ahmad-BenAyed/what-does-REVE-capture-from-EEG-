@@ -3,6 +3,9 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from ..paths import Paths, leace_target, output_problem, prepare_output
 
 import numpy as np
 import pandas as pd
@@ -13,14 +16,14 @@ from threadpoolctl import threadpool_limits
 from .cnn_reve import (cache_embeddings, load_classifier, load_labels, load_metadata,
                        mean_pool_embeddings, metrics)
 
-FAMILIES = {'T': ('temporal', 10), 'F': ('spectral', 16), 'TF': ('tf', 11),
-            'C': ('c', 7), 'R': ('r', 14), 'X': ('x', 5)}
+FAMILIES = {'T': 10, 'F': 16, 'TF': 11, 'C': 7, 'R': 14, 'X': 5}
 
 
-def read_targets(root, subjects, required):
+def read_targets(root, subjects, required, paths=None):
+    paths = paths or Paths()
     targets = {}
-    for family, (suffix, count) in FAMILIES.items():
-        path = root / family / 'resultats' / ('results_' + suffix) / 'test_predictions.npz'
+    for family, count in FAMILIES.items():
+        path = leace_target(paths, family, root)
         with np.load(path, allow_pickle=False) as data:
             rows = data['row_index']
             if (rows.dtype.kind not in 'iu' or len(np.unique(rows)) != len(rows)
@@ -54,9 +57,13 @@ def probabilities(model, x):
 
 
 def run(args):
+    problem = output_problem(args.out)
+    if problem:
+        raise FileExistsError(problem)
     config = json.loads((args.models / 'config.json').read_text(encoding='utf-8'))
-    meta = args.data / 'segments_metadata.csv'
-    path = args.data / 'reve_embeddings.npz'
+    infrastructure = getattr(args, 'paths', None) or Paths()
+    meta = getattr(args, 'metadata', None) or infrastructure.input('metadata', args.data)
+    path = getattr(args, 'embeddings', None) or infrastructure.input('embeddings', args.data)
     labels = load_labels(path)
     _, subjects = load_metadata(meta, len(labels))
     digest = hashlib.sha256(meta.read_bytes()).hexdigest()
@@ -71,15 +78,17 @@ def run(args):
     required = np.concatenate([c['test_rows'] for _, c in folds])
     if len(np.unique(required)) != len(required) or min(required) < 0 or max(required) >= len(labels):
         raise ValueError('Lignes de test invalides')
-    targets = read_targets(args.family, subjects, required)
-    array, source = cache_embeddings(path, 'embeddings', args.models / 'cache')
-    if source['member_crc'] != config['source_embeddings']['member_crc'] or list(array.shape) != config['input_shape']:
-        raise ValueError('Embeddings différents de ceux du MLP')
-    x = mean_pool_embeddings(array, required)[:, 0, 0].astype(float)
-    del array
-    if args.out.exists() and any(args.out.iterdir()):
-        raise ValueError('Choisir un dossier --out vide')
-    args.out.mkdir(parents=True, exist_ok=True)
+    targets = read_targets(args.family, subjects, required, infrastructure)
+    with TemporaryDirectory(prefix='reve_leace_') as cache:
+        array, source = cache_embeddings(path, 'embeddings', cache)
+        try:
+            if source['member_crc'] != config['source_embeddings']['member_crc'] or list(array.shape) != config['input_shape']:
+                raise ValueError('Embeddings différents de ceux du MLP')
+            x = mean_pool_embeddings(array, required)[:, 0, 0].astype(float)
+        finally:
+            array._mmap.close()
+            del array
+    prepare_output(args.out)
     (args.out / 'config.json').write_text(json.dumps(dict(seed=args.seed, controls=args.controls, metadata_sha256=digest, embeddings=source, models=str(args.models.resolve()), features=list(targets)), indent=2), encoding='utf-8')
     records = []
     for fold, ((model, c), checkpoint) in enumerate(zip(folds, paths)):
@@ -168,19 +177,29 @@ def run(args):
     print(args.out / 'summary.csv')
 
 
-if __name__ == '__main__':
-    root = Path(__file__).resolve().parents[1]
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--data', type=Path, default=root.parent / 'data')
-    parser.add_argument('--family', type=Path, default=root / 'family')
-    parser.add_argument('--models', type=Path, default=root / 'classification/results_mlp_tous_sujets')
-    parser.add_argument('--out', type=Path, default=root / 'classification/results_leace_mlp')
+    parser.add_argument('--config', type=Path)
+    parser.add_argument('--data', type=Path)
+    parser.add_argument('--metadata', type=Path)
+    parser.add_argument('--embeddings', type=Path)
+    parser.add_argument('--family', type=Path)
+    parser.add_argument('--models', type=Path)
+    parser.add_argument('--out', type=Path)
     parser.add_argument('--controls', type=int, default=10)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--save-embeddings', action='store_true')
     args = parser.parse_args()
     if args.controls < 1:
         parser.error('Au moins un contrôle aléatoire requis')
+    args.paths = Paths(args.config)
+    args.family = args.family or args.paths.location('family_dir')
+    args.models = args.models or args.paths.location('mlp_results_dir')
+    args.out = args.out or args.paths.location('leace_results_dir')
     torch.set_num_threads(4)
     with threadpool_limits(limits=4):
         run(args)
+
+
+if __name__ == '__main__':
+    main()
