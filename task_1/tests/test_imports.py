@@ -33,7 +33,7 @@ from unittest.mock import patch
 from contextlib import ExitStack
 
 sys.path.insert(0, sys.argv[1])
-required = ["numpy","pandas","scipy","sklearn","matplotlib"]
+required = ["numpy","pandas","sklearn","matplotlib"]
 missing = [name for name in required if find_spec(name) is None]
 if missing:
     print("Missing dependencies: " + ", ".join(missing))

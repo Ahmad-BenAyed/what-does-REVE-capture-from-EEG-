@@ -1,15 +1,8 @@
 {
-  "data_dir": "../../data",
-  "segments_file": "segments_labeled.npz",
+  "data_dir": "../data",
   "embeddings_file": "reve_embeddings.npz",
-  "family_dir": "family",
-  "families": {
-    "T": "results_temporal",
-    "F": "results_spectral",
-    "TF": "results_tf",
-    "C": "results_c",
-    "R": "results_r",
-    "X": "results_x"
-  },
+  "features_file": "features_63.npz",
+  "metadata_file": "segments_metadata.csv",
+  "results_dir": "results_loso_norm_sujet",
   "visualisations_dir": "visualisations"
 }

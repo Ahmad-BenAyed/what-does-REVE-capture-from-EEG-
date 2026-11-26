@@ -1,6 +1,15 @@
 # Local data
 /data/
 /raw_data/
+# EEG inputs and REVE caches, including custom experiment folders
+*.edf
+*.bdf
+segments_labeled.npz
+features_63.npz
+reve_embeddings.npz
+pooled_embeddings.npy
+# Original reference provenance contains machine-specific paths
+/task_1/results_loso_norm_sujet/config.json
 /hf-cache/
 /hf_cache/
 

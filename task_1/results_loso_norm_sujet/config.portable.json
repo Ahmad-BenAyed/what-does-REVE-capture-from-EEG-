@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-26T10:55:45.239560+00:00",
+  "embeddings": "../../data/reve_embeddings.npz",
+  "features": "../../data/features_63.npz",
+  "metadata": "../../data/segments_metadata.csv",
+  "alphas": [
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "versions": [
+    "A",
+    "B",
+    "C"
+  ],
+  "permutations": 5,
+  "seed": 42,
+  "n_trials": 2642,
+  "n_subjects": 10,
+  "dropped_nonfinite_rows": 0,
+  "n_targets": 308,
+  "targets": "49 features par canal x 6 statistiques sur les canaux + 14 globales",
+  "pooling": "moyenne sur canaux et patchs -> 512",
+  "outer_cv": "leave one subject out",
+  "inner_cv": "leave one remaining subject out, alpha par cible",
+  "subject_normalisation": "z-score par sujet avec les stats du sujet (aucun label de tâche)",
+  "metrics": "R2 (référence = moyenne du sujet testé) et r de Pearson, par sujet",
+  "aggregation": "dimensions -> caractéristique -> famille dans chaque sujet, puis entre sujets"
+}

@@ -23,6 +23,7 @@ Chaque tâche a ses scripts, ses dépendances, sa configuration et ses résultat
 |---|---|
 | `segments_labeled.npz` | Signaux par essai et canal (`X`), labels (`y`) |
 | `segments_metadata.csv` | Métadonnées par essai dans le même ordre, avec le sujet |
+| `features_63.npz` | Cibles EEG de Task 1, produites par `legacy/03_extract_63_features.py` |
 | `reve_embeddings.npz` | Embeddings REVE par essai, canal et fenêtre, avec les labels (`y`) |
 
 Les données EEG et les embeddings sont volumineux et restent locaux. Les contrôles structurels et les tests synthétiques fonctionnent sur un dépôt sans ces fichiers.
